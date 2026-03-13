@@ -21,7 +21,7 @@ const CHAR_RAMPS = {
   custom:    null,  // user-provided
 };
 
-// Dense → sparse (sorted by visual weight, light to dark)
+// Sparse → dense (sorted by visual weight, dark to light)
 const LUMINANCE_RAMP_STANDARD  = Array.from(' .\'`-_:;,~!=+*#%@$&█');
 const LUMINANCE_RAMP_EXTENDED  = Array.from(' ·∙•○□▪▫▬▲▶◆◉●■█');
 const LUMINANCE_RAMP_BLOCKS    = Array.from(' ░▒▓█');
