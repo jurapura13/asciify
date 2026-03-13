@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCIIFY — Image → ASCII Art Converter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&family=IBM+Plex+Mono:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- CRT scanline overlay -->
+  <div class="crt-overlay" aria-hidden="true"></div>
+  <!-- Phosphor flicker -->
+  <div class="flicker-layer" aria-hidden="true"></div>
+
+  <!-- TOP HEADER BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-prompt">root@asciify:~$</span>
+      <h1 class="topbar-title">ASCIIFY</h1>
+      <span class="topbar-tag">IMAGE → ASCII ART CONVERTER</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-blink" aria-hidden="true">█</span>
+      <span class="topbar-version">v2.1.0</span>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <div class="app-layout">
+
+    <!-- LEFT SIDEBAR: CONTROLS -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+
+        <!-- SECTION: IMAGE -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-header">
+            <span class="ctrl-section-icon">[</span>IMAGE<span class="ctrl-section-icon">]</span>
+          </div>
+
+          <!-- Drop Zone -->
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-content">
+              <div class="drop-icon">⬇</div>
+              <div class="drop-text">DROP IMAGE HERE</div>
+              <div class="drop-sub">or click to browse</div>
+              <div class="drop-formats">JPG · PNG · GIF · WEBP · BMP</div>
+            </div>
+            <div class="drop-zone-scanlines" aria-hidden="true"></div>
+            <input type="file" id="fileInput" accept="image/*" hidden>
+          </div>
+
+          <!-- Image Preview -->
+          <div class="preview-container" id="previewContainer" style="display:none">
+            <div class="preview-label">ORIGINAL</div>
+            <img id="previewImg" class="preview-img" alt="source">
+            <div class="preview-meta" id="previewMeta"></div>
+          </div>
+        </div>
+
+        <!-- SECTION: CONVERSION -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-header">
+            <span class="ctrl-section-icon">[</span>CONVERSION<span class="ctrl-section-icon">]</span>
+          </div>
+
+          <div class="ctrl-group">
+            <label class="ctrl-label">WIDTH (chars)
+              <span class="ctrl-value" id="widthVal">120</span>
+            </label>
+            <input type="range" class="ctrl-slider" id="widthSlider" min="40" max="300" value="120" step="2">
+          </div>
+
+          <div class="ctrl-group">
+            <label class="ctrl-label">CHARACTER SET</label>
+            <select class="ctrl-select" id="charsetSelect">
+              <option value="standard">Standard ASCII</option>
+              <option value="extended">Extended Unicode</option>
+              <option value="blocks">Blocks Only</option>
+              <option value="braille">Braille (⠀–⣿)</option>
+              <option value="minimal">Minimal (.:#@)</option>
+              <option value="custom">Custom Ramp</option>
+            </select>
+          </div>
+
+          <div class="ctrl-group" id="customCharGroup" style="display:none">
+            <label class="ctrl-label">CUSTOM RAMP (light→dark)</label>
+            <input type="text" class="ctrl-input" id="customCharInput" value=" .'-:;!=+*#%@$&amp;█" placeholder="type chars light to dark">
+          </div>
+
+          <div class="ctrl-group">
+            <label class="ctrl-label">RENDERING MODE</label>
+            <div class="toggle-group" id="renderModeGroup">
+              <button class="toggle-btn active" data-value="hybrid">Hybrid</button>
+              <button class="toggle-btn" data-value="luminance">Luma</button>
+              <button class="toggle-btn" data-value="edges">Edges</button>
+              <button class="toggle-btn" data-value="blocks">Blocks</button>
+            </div>
+          </div>
+
+          <div class="ctrl-group">
+            <label class="ctrl-label">EDGE SENSITIVITY
+              <span class="ctrl-value" id="edgeVal">30</span>
+            </label>
+            <input type="range" class="ctrl-slider" id="edgeSlider" min="0" max="100" value="30">
+          </div>
+
+          <div class="ctrl-group">
+            <label class="ctrl-label">COLOR MODE</label>
+            <div class="toggle-group" id="colorModeGroup">
+              <button class="toggle-btn active" data-value="matrix">Matrix</button>
+              <button class="toggle-btn" data-value="color">Color</button>
+              <button class="toggle-btn" data-value="mono">Mono</button>
+              <button class="toggle-btn" data-value="amber">Amber</button>
+            </div>
+          </div>
+
+          <div class="ctrl-group">
+            <label class="ctrl-label">CONTRAST
+              <span class="ctrl-value" id="contrastVal">100</span>%
+            </label>
+            <input type="range" class="ctrl-slider" id="contrastSlider" min="50" max="200" value="100">
+          </div>
+
+          <div class="ctrl-group">
+            <label class="ctrl-label">BRIGHTNESS
+              <span class="ctrl-value" id="brightnessVal">100</span>%
+            </label>
+            <input type="range" class="ctrl-slider" id="brightnessSlider" min="50" max="200" value="100">
+          </div>
+
+          <div class="ctrl-group ctrl-checkbox-group">
+            <label class="ctrl-checkbox-label">
+              <input type="checkbox" id="invertCheck" class="ctrl-checkbox">
+              <span class="ctrl-checkbox-custom"></span>
+              INVERT MAPPING
+            </label>
+          </div>
+
+          <div class="ctrl-group ctrl-checkbox-group">
+            <label class="ctrl-checkbox-label">
+              <input type="checkbox" id="ditherCheck" class="ctrl-checkbox" checked>
+              <span class="ctrl-checkbox-custom"></span>
+              FLOYD-STEINBERG DITHERING
+            </label>
+          </div>
+        </div>
+
+        <!-- SECTION: DISPLAY -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-header">
+            <span class="ctrl-section-icon">[</span>DISPLAY<span class="ctrl-section-icon">]</span>
+          </div>
+
+          <div class="ctrl-group">
+            <label class="ctrl-label">FONT SIZE
+              <span class="ctrl-value" id="fontSizeVal">12</span>px
+            </label>
+            <input type="range" class="ctrl-slider" id="fontSizeSlider" min="8" max="20" value="12">
+          </div>
+
+          <div class="ctrl-group">
+            <label class="ctrl-label">LINE HEIGHT
+              <span class="ctrl-value" id="lineHeightVal">1.1</span>
+            </label>
+            <input type="range" class="ctrl-slider" id="lineHeightSlider" min="50" max="150" value="110">
+          </div>
+        </div>
+
+        <!-- SECTION: EXPORT -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-header">
+            <span class="ctrl-section-icon">[</span>EXPORT<span class="ctrl-section-icon">]</span>
+          </div>
+
+          <button class="export-btn" id="btnCopy">
+            <span class="export-btn-icon">⎘</span> COPY TEXT
+          </button>
+          <button class="export-btn" id="btnTxt">
+            <span class="export-btn-icon">↓</span> DOWNLOAD .TXT
+          </button>
+          <button class="export-btn" id="btnHtml">
+            <span class="export-btn-icon">↓</span> DOWNLOAD .HTML
+          </button>
+          <button class="export-btn" id="btnPng">
+            <span class="export-btn-icon">↓</span> DOWNLOAD .PNG
+          </button>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- MAIN OUTPUT AREA -->
+    <main class="main-area">
+
+      <!-- SPLIT VIEW CONTROLS -->
+      <div class="view-controls">
+        <div class="toggle-group" id="viewModeGroup">
+          <button class="toggle-btn active" data-value="split">Split</button>
+          <button class="toggle-btn" data-value="ascii">ASCII Only</button>
+          <button class="toggle-btn" data-value="original">Original Only</button>
+        </div>
+        <button class="convert-btn" id="convertBtn">
+          <span class="convert-btn-icon">▶</span> CONVERT
+        </button>
+      </div>
+
+      <!-- SPLIT VIEW CONTAINER -->
+      <div class="split-view" id="splitView">
+
+        <!-- ORIGINAL SIDE -->
+        <div class="split-pane" id="originalPane">
+          <div class="pane-label">ORIGINAL</div>
+          <div class="pane-content pane-original">
+            <div class="empty-state" id="originalEmpty">
+              <div class="empty-prompt">awaiting input...</div>
+            </div>
+            <img id="splitPreviewImg" class="split-original-img" style="display:none" alt="original">
+          </div>
+        </div>
+
+        <!-- ASCII OUTPUT SIDE -->
+        <div class="split-pane split-pane-ascii" id="asciiPane">
+          <div class="pane-label">ASCII OUTPUT</div>
+          <div class="pane-content pane-ascii" id="asciiOutput">
+            <div class="crt-bezel" id="crtBezel">
+              <div class="crt-screen" id="crtScreen">
+                <pre class="ascii-pre" id="asciiPre"></pre>
+                <div class="empty-state" id="asciiEmpty">
+                  <div class="ascii-boot">
+                    <div class="boot-line">ASCIIFY v2.1.0 READY</div>
+                    <div class="boot-line dim">initializing conversion engine...</div>
+                    <div class="boot-line dim">loading character tables... <span class="ok">OK</span></div>
+                    <div class="boot-line dim">sobel kernel loaded... <span class="ok">OK</span></div>
+                    <div class="boot-line dim">braille encoder ready... <span class="ok">OK</span></div>
+                    <div class="boot-line">_</div>
+                    <div class="boot-line pulse">DROP AN IMAGE TO BEGIN</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- STATUS BAR -->
+      <div class="statusbar">
+        <span class="status-item" id="statusDims">—×— chars</span>
+        <span class="status-sep">│</span>
+        <span class="status-item" id="statusCount">—</span>
+        <span class="status-sep">│</span>
+        <span class="status-item" id="statusTime">— ms</span>
+        <span class="status-sep">│</span>
+        <span class="status-item" id="statusMode">hybrid · matrix</span>
+        <span class="status-sep">│</span>
+        <span class="status-item status-right" id="statusReady">■ READY</span>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Hidden canvas for processing -->
+  <canvas id="offscreenCanvas" style="display:none"></canvas>
+  <canvas id="exportCanvas" style="display:none"></canvas>
+
+  <script src="./engine.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
